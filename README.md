@@ -1,7 +1,7 @@
 # COE 332 - Project
 
-Bradley Bridges - blb3664
-Paige Williams - pnw268
+- Bradley Bridges - blb3664
+- Paige Williams - pnw268
 
 [![Build Status](https://travis-ci.com/bbridges/coe332-blb3664-pnw268.svg?branch=master)](https://travis-ci.com/bbridges/coe332-blb3664-pnw268)
 
@@ -24,7 +24,7 @@ $ npm install -g redoc-cli
 To serve the contents and have them rebuild on changes, you can run
 
 ```sh
-$ redoc-cli server openapi.yaml --watch
+$ redoc-cli serve openapi.yaml --watch
 ```
 
 and view the HTML at http://localhost:8080.
