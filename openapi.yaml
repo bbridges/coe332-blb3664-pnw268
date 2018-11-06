@@ -1,0 +1,26 @@
+openapi: 3.0.0
+servers:
+  - url: //api.example.com/
+    description: Example server
+info:
+  description: |
+    Sample API Spec for getting sunspot data.
+
+    Uses `data/sunspots.csv` from the class repository.
+  version: 0.1.0
+  title: 'Homework #7 API Spec'
+tags:
+  - name: spots
+    description: Sunspot Data
+paths:
+  /spots:
+    post:
+      tags:
+        - spots
+      summary: Add new sunspot data
+      description: Add new sunspot data to the database.
+      responses:
+        '201':
+          description: New sunspot data added
+        '400':
+          description: Invalid input
