@@ -7,6 +7,14 @@ info:
     Sample API Spec for getting sunspot data.
 
     Uses `data/sunspots.csv` from the class repository.
+
+    If pricing were to be added to the API, a rate limit for requests would be
+    added, where a paid user could acquire a client id that could be attached
+    in the query parameters that would allow for a higher rate limit.
+
+    To make the above work, the current limit and remaining requests would be
+    shown in the headers. This would be per IP address (or another identifying
+    metric like if users were added).
   version: 0.1.0
   title: 'Homework #7 API Spec'
 tags:
