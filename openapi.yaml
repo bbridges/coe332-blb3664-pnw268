@@ -11,16 +11,195 @@ info:
   title: 'Homework #7 API Spec'
 tags:
   - name: spots
-    description: Sunspot Data
+    description: |
+      Collection of sunspot data.
+
+      Sunspot data can be processed and analytics can be gathered.
 paths:
   /spots:
     post:
       tags:
         - spots
-      summary: Add new sunspot data
-      description: Add new sunspot data to the database.
+      summary: Upload new sunspot data
+      description: Upload new sunspot data to the database.
       responses:
         '201':
-          description: New sunspot data added
+          description: Sunspot data uploaded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NewSpotsDatum'
         '400':
           description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+      x-code-samples:
+        - lang: Shell
+          source: |
+            $ curl -X POST http://api.example.com/spots \
+                --data '{"year": 1870, "spots": 88}'
+        - lang: Python
+          source: |
+            import requests
+
+            url = 'http://api.example.com/spots'
+            payload = {
+              'year': 4,
+              'spots': 88
+            }
+
+            r = requests.post(url, json=payload)
+
+            print(r.json())
+      requestBody:
+        $ref: '#/components/requestBodies/NewSpotsDatum'
+    get:
+      tags:
+        - spots
+      summary: Get all sunspot data
+      description: |
+        Return all the sunspot data for all years.
+
+        The time range by default covers all the years, but can be restricted
+        with the `start` and `stop` query parameters.
+      parameters:
+        - name: start
+          description: Starting year (inclusive)
+          in: path
+          schema:
+            type: integer
+            format: int64
+        - name: end
+          description: Ending year (inclusive)
+          in: path
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SpotsData'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+      x-code-samples:
+        - lang: Shell
+          source: |
+            $ curl http://api.example.com/spots
+        - lang: Python
+          source: |
+            import requests
+
+            url = 'http://api.example.com/spots'
+
+            r = requests.get(url)
+
+            print(r.json())
+  '/spots/{id}':
+    get:
+      tags:
+        - spots
+      summary: Get sunspot data by id
+      description: Return the sunspot data for an id.
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SpotsDatum'
+      x-code-samples:
+        - lang: Shell
+          source: |
+            $ curl http://api.example.com/spots/19
+        - lang: Python
+          source: |
+            import requests
+
+            url = 'http://api.example.com/spots/19'
+
+            r = requests.get(url)
+
+            print(r.json())
+components:
+  schemas:
+    NewSpotsDatum:
+      type: object
+      required:
+        - id
+        - year
+        - spots
+      properties:
+        id:
+          type: int64
+          example: 100
+        year:
+          type: int64
+          example: 1870
+        spots:
+          description: Number of sunspots that year
+          type: int64
+          example: 88
+    SpotsDatum:
+      type: object
+      required:
+        - id
+        - year
+        - spots
+      properties:
+        id:
+          type: int64
+          example: 19
+        year:
+          type: int64
+          example: 1789
+        spots:
+          description: Number of sunspots that year
+          type: int64
+          example: 118
+    SpotsData:
+      type: array
+      required:
+        - id
+        - year
+        - spots
+      items:
+        $ref: '#/components/schemas/SpotsDatum'
+    ApiError:
+      type: object
+      required:
+        - status
+        - message
+      properties:
+        status:
+          type: string
+          enum:
+            - Error
+        message:
+          type: string
+  requestBodies:
+    NewSpotsDatum:
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - year
+              - spots
+            properties:
+              year:
+                type: int64
+                example: 1870
+              spots:
+                description: Number of sunspots that year
+                type: int64
+                example: 88
+
