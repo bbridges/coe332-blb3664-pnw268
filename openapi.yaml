@@ -23,6 +23,12 @@ tags:
       Collection of sunspot data.
 
       Sunspot data can be processed and analytics can be gathered.
+  - name: reports
+    description: |
+      Analysis made on sunspot data per request.
+
+      This assumes a job-based API has been created that can produce
+      these reports.
 paths:
   /spots:
     post:
@@ -137,6 +143,91 @@ paths:
             r = requests.get(url)
 
             print(r.json())
+  /reports:
+    get:
+      tags:
+        - reports
+      summary: Get all reports
+      description: |
+        Return all the reports made.
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReportIdList'
+      x-code-samples:
+        - lang: Shell
+          source: |
+            $ curl http://api.example.com/reports
+        - lang: Python
+          source: |
+            import requests
+
+            url = 'http://api.example.com/reports'
+
+            r = requests.get(url)
+
+            print(r.json())
+  '/reports/{id}':
+    get:
+      tags:
+        - reports
+      summary: Get a report by id
+      description: |
+        Return the report by the given report id string.
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Report'
+      x-code-samples:
+        - lang: Shell
+          source: |
+            $ curl http://api.example.com/report/a2fd6419-4397-4105-a9a3-7f19f07d600e
+        - lang: Python
+          source: |
+            import requests
+
+            url = 'http://api.example.com/report/a2fd6419-4397-4105-a9a3-7f19f07d600e'
+
+            r = requests.get(url)
+
+            print(r.json())
+  '/reports/{id}/graph.png':
+    get:
+      tags:
+        - reports
+      summary: Get the graph for a report
+      description: |
+        Return the PNG graph file made for a report made by matplotlib.
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            image/png:
+             schema:
+               type: string
+               format: binary
+      x-code-samples:
+        - lang: Shell
+          source: |
+            $ curl http://api.example.com/report/a2fd6419-4397-4105-a9a3-7f19f07d600e > graph.png
+        - lang: Python
+          source: |
+            import shutil
+            import requests
+
+            url = 'http://api.example.com/report/a2fd6419-4397-4105-a9a3-7f19f07d600e'
+
+            r = requests.get(url, stream=True)
+
+            # Save the image to a file.
+            with open('graph.png', 'wb') as f:
+                shutil.copyfileobj(r.raw, f)
 components:
   schemas:
     NewSpotsDatum:
@@ -181,6 +272,43 @@ components:
         - spots
       items:
         $ref: '#/components/schemas/SpotsDatum'
+    Report:
+      type: object
+      required:
+        - id
+        - start
+        - end
+        - mean
+        - graph_url
+      properties:
+        id:
+          type: string
+          description: UUID v4 id
+          example: a2fd6419-4397-4105-a9a3-7f19f07d600e
+        start:
+          type: int64
+          description: Starting year in data (inclusive)
+          example: 1800
+        end:
+          type: int64
+          description: Ending year in data (inclusive)
+          example: 1849
+        mean:
+          type: float
+          description: Mean spots count per year
+          example: 55.1
+        graph_url:
+          type: string
+          description: URL to retrieve graph from
+          example: http://api.example.com/reports/a2fd6419-4397-4105-a9a3-7f19f07d600e/graph.png
+    ReportId:
+      type: string
+      description: UUID v4 id
+      example: a2fd6419-4397-4105-a9a3-7f19f07d600e
+    ReportIdList:
+      type: array
+      items:
+        $ref: '#/components/schemas/ReportId'
     ApiError:
       type: object
       required:
