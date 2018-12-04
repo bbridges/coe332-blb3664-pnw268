@@ -22,6 +22,7 @@ def create_job(redis_client, start=None, end=None):
     key = _format_key(job_id)
 
     _save_job_redis(redis_client, key, job_dict)
+    _queue_job_redis(redis_client, key)
 
     return job_dict
 
@@ -57,6 +58,14 @@ def get_job(redis_client, job_id):
         return _convert_job_hash(job_hash)
     else:
         return None
+
+
+def get_new_job(redis_client):
+    """Return the next new job id.
+
+    This function will block until it is returned.
+    """
+    return redis_client.brpop('new-jobs')
 
 
 def _get_iso_time():
@@ -98,6 +107,11 @@ def _save_job_redis(redis_client, key, job_dict):
     pipe.hmset(key, job_dict)
 
     pipe.execute()
+
+
+def _queue_job_redis(redis_client, key):
+    """Queue an id to be processed."""
+    redis_client.lpush('new-jobs', key)
 
 
 def _convert_job_hash(job_hash):
