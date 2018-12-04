@@ -1,5 +1,4 @@
-import os.path
-import sys
+import os
 
 from flask import Flask, jsonify, request
 import redis
