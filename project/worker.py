@@ -20,7 +20,11 @@ def start_worker():
         job_id = jobs.get_new_job(redis_client)
         job_dict = jobs.get_job(redis_client, job_id)
 
+        jobs.update_status(redis_client, job_id, 'processing')
+
         _handle_new_job(job_dict)
+
+        jobs.update_status(redis_client, job_id, 'completed')
 
 
 def _handle_new_job(job_dict):
