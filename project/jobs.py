@@ -18,11 +18,11 @@ def create_job(redis_client, start=None, end=None):
     job_id = _generate_id()
     time_str = _get_iso_time()
 
-    job_dict = _job_dict(job_id, 'submitted', start, end, time_str, time_str)
-    key = _format_key(job_id)
+    job_dict = _job_dict(job_id, 'submitted', start, end, time_str, time_str,
+                         None)
 
-    _save_job_redis(redis_client, key, job_dict)
-    _queue_job_redis(redis_client, key)
+    _save_job_redis(redis_client, job_id, job_dict)
+    _queue_job_redis(redis_client, job_id)
 
     return job_dict
 
@@ -65,7 +65,17 @@ def get_new_job(redis_client):
 
     This function will block until it is returned.
     """
-    return redis_client.brpop('new-jobs')
+    return redis_client.brpop('new-jobs')[1].decode()
+
+
+def update_status(redis_client, job_id, status):
+    """Update the status for a job."""
+    _update_job_redis(redis_client, job_id, status=status)
+
+
+def update_plot(redis_client, job_id, plot):
+    """Add a plot to an existing job."""
+    _update_job_redis(redis_client, job_id, plot=plot)
 
 
 def _get_iso_time():
@@ -78,35 +88,46 @@ def _generate_id():
     return str(uuid.uuid4())
 
 
-def _job_dict(id, status, start, end, created_at, last_updated):
+def _job_dict(job_id, status, start, end, created_at, last_updated, plot):
     """Returns a dictionary representing a job."""
     return {
-        'id': id,
+        'id': job_id,
         'status': status,
         'start': start,
         'end': end,
         'created_at': created_at,
-        'last_updated': last_updated
+        'last_updated': last_updated,
+        'plot': plot
     }
 
 
-def _format_key(id):
+def _format_key(job_id):
     """Format a job id for redis."""
-    return f'job.{id}'
+    return f'job.{job_id}'
 
 
-def _save_job_redis(redis_client, key, job_dict):
+def _save_job_redis(redis_client, job_id, job_dict):
     """Save a job with a redis client.
 
     This also adds the key to the jobs-key set so it can be looked
     up with all other jobs.
     """
+    key = _format_key(job_id)
+
     pipe = redis_client.pipeline()
 
     pipe.sadd('job-keys', key)
     pipe.hmset(key, job_dict)
 
     pipe.execute()
+
+
+def _update_job_redis(redis_client, job_id, **kwargs):
+    """Update a job dict on Redis."""
+    key = _format_key(job_id)
+    kwargs.setdefault('last_updated', _get_iso_time())
+
+    redis_client.hmset(key, kwargs)
 
 
 def _queue_job_redis(redis_client, key):
@@ -116,15 +137,16 @@ def _queue_job_redis(redis_client, key):
 
 def _convert_job_hash(job_hash):
     """Convert a job hash to a job dict."""
+    _redis_string = lambda value: value.decode() if value != b'None' else None
+    _redis_binary = lambda value: value if value != b'None' else None
+    _redis_number = lambda value: int(value) if value != b'None' else None
+
     return _job_dict(
-        job_hash[b'id'].decode(),
-        job_hash[b'status'].decode(),
-        _parse_redis_number(job_hash[b'start']),
-        _parse_redis_number(job_hash[b'end']),
-        job_hash[b'created_at'].decode(),
-        job_hash[b'last_updated'].decode()
+        _redis_string(job_hash[b'id']),
+        _redis_string(job_hash[b'status']),
+        _redis_number(job_hash[b'start']),
+        _redis_number(job_hash[b'end']),
+        _redis_string(job_hash[b'created_at']),
+        _redis_string(job_hash[b'last_updated']),
+        _redis_binary(job_hash[b'plot'])
     )
-
-
-def _parse_redis_number(value):
-    return int(value) if value != b'None' else None
