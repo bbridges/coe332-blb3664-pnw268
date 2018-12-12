@@ -10,16 +10,16 @@ from datetime import datetime
 import uuid
 
 
-def create_job(redis_client, start=None, end=None):
-    """Create a job on Redis with optional start and end times.
+def create_job(redis_client, start=None, end=None, limit=None, offset=None):
+    """Create a job on Redis with optional data query params.
 
     Returns the job dict.
     """
     job_id = _generate_id()
     time_str = _get_iso_time()
 
-    job_dict = _job_dict(job_id, 'submitted', start, end, time_str, time_str,
-                         None)
+    job_dict = _job_dict(job_id, 'submitted', start, end, limit, offset,
+                         time_str, time_str, None)
 
     _save_job_redis(redis_client, job_id, job_dict)
     _queue_job_redis(redis_client, job_id)
@@ -88,13 +88,16 @@ def _generate_id():
     return str(uuid.uuid4())
 
 
-def _job_dict(job_id, status, start, end, created_at, last_updated, plot):
+def _job_dict(job_id, status, start, end, limit, offset, created_at,
+              last_updated, plot):
     """Returns a dictionary representing a job."""
     return {
         'id': job_id,
         'status': status,
         'start': start,
         'end': end,
+        'limit': limit,
+        'offset': offset,
         'created_at': created_at,
         'last_updated': last_updated,
         'plot': plot
@@ -146,6 +149,8 @@ def _convert_job_hash(job_hash):
         _redis_string(job_hash[b'status']),
         _redis_number(job_hash[b'start']),
         _redis_number(job_hash[b'end']),
+        _redis_number(job_hash[b'limit']),
+        _redis_number(job_hash[b'offset']),
         _redis_string(job_hash[b'created_at']),
         _redis_string(job_hash[b'last_updated']),
         _redis_binary(job_hash[b'plot'])

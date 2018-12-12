@@ -194,25 +194,7 @@ def _handle_post_offset_job(limit, offset):
             'limit and offset, if provided, must be integers.'
         ), 400
     else:
-        if (limit is not None and limit < 0) or \
-                (offset is not None and offset < 0):
-            return _make_error(
-                'limit and offset, if provided, must be non-negative'
-            ), 400
-
-        # Coverting the limit and offset to start and stop.
-        data = csv_parser.read_data_offset(limit=limit, offset=offset)
-
-        if data:
-            # The data exists and so this can be done directly.
-            start = data[0]['year']
-            end = data[-1]['year'] if limit is not None else None
-        else:
-            # Pick a combination that returns no data.
-            start = 0
-            end = -1
-
-        job_dict = jobs.create_job(redis_client, start=start, end=end)
+        job_dict = jobs.create_job(redis_client, limit=limit, offset=offset)
         return jsonify(job_dict)
 
 
