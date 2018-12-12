@@ -206,7 +206,7 @@ def job_by_id(id):
     if job_dict:
         return jsonify(job_dict)
     else:
-        return _make_error('job found for row id.'), 404
+        return _make_error('job not found for job id.'), 404
 
 
 # Format a simple JSON error message.
