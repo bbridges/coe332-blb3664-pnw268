@@ -19,7 +19,7 @@ def create_job(redis_client, start=None, end=None, limit=None, offset=None):
     time_str = _get_iso_time()
 
     job_dict = _job_dict(job_id, 'submitted', start, end, limit, offset,
-                         time_str, time_str, None)
+                         time_str, time_str, False)
 
     _save_job_redis(redis_client, job_id, job_dict)
     _queue_job_redis(redis_client, job_id)
@@ -60,6 +60,15 @@ def get_job(redis_client, job_id):
         return None
 
 
+def get_plot(redis_client, job_id):
+    """Get a plot by its associated job id.
+
+    Returns None if the plot doesn't exist.
+    """
+    key = _format_plot_key(job_id)
+    return redis_client.get(key)
+
+
 def get_new_job(redis_client):
     """Return the next new job id.
 
@@ -74,8 +83,12 @@ def update_status(redis_client, job_id, status):
 
 
 def update_plot(redis_client, job_id, plot):
-    """Add a plot to an existing job."""
-    _update_job_redis(redis_client, job_id, plot=plot)
+    """Add a plot to an existing job.
+
+    The plot is stored as a binary separate from the job hash.
+    """
+    _save_plot_redis(redis_client, job_id, plot=plot)
+    _update_job_redis(redis_client, job_id, has_plot=True)
 
 
 def _get_iso_time():
@@ -89,7 +102,7 @@ def _generate_id():
 
 
 def _job_dict(job_id, status, start, end, limit, offset, created_at,
-              last_updated, plot):
+              last_updated, has_plot):
     """Returns a dictionary representing a job."""
     return {
         'id': job_id,
@@ -100,13 +113,18 @@ def _job_dict(job_id, status, start, end, limit, offset, created_at,
         'offset': offset,
         'created_at': created_at,
         'last_updated': last_updated,
-        'plot': plot
+        'has_plot': has_plot
     }
 
 
 def _format_key(job_id):
     """Format a job id for redis."""
     return f'job.{job_id}'
+
+
+def _format_plot_key(job_id):
+    """Format a plot key from a job id."""
+    return f'plot.{job_id}'
 
 
 def _save_job_redis(redis_client, job_id, job_dict):
@@ -125,6 +143,12 @@ def _save_job_redis(redis_client, job_id, job_dict):
     pipe.execute()
 
 
+def _save_plot_redis(redis_client, job_id, plot):
+    """Save a plot separate from a job."""
+    key = _format_plot_key(job_id)
+    redis_client.set(key, plot)
+
+
 def _update_job_redis(redis_client, job_id, **kwargs):
     """Update a job dict on Redis."""
     key = _format_key(job_id)
@@ -141,8 +165,8 @@ def _queue_job_redis(redis_client, key):
 def _convert_job_hash(job_hash):
     """Convert a job hash to a job dict."""
     _redis_string = lambda value: value.decode() if value != b'None' else None
-    _redis_binary = lambda value: value if value != b'None' else None
     _redis_number = lambda value: int(value) if value != b'None' else None
+    _redis_boolean = lambda value: value == b'True'
 
     return _job_dict(
         _redis_string(job_hash[b'id']),
@@ -153,5 +177,5 @@ def _convert_job_hash(job_hash):
         _redis_number(job_hash[b'offset']),
         _redis_string(job_hash[b'created_at']),
         _redis_string(job_hash[b'last_updated']),
-        _redis_binary(job_hash[b'plot'])
+        _redis_boolean(job_hash[b'has_plot'])
     )

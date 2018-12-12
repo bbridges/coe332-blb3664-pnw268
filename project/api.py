@@ -1,6 +1,7 @@
 import os
+import io
 
-from flask import Flask, jsonify, request
+from flask import Flask, jsonify, request, send_file
 import redis
 
 import csv_parser
@@ -207,6 +208,18 @@ def job_by_id(id):
         return jsonify(job_dict)
     else:
         return _make_error('job not found for job id.'), 404
+
+
+@app.route('/jobs/<id>/plot', methods=['GET'])
+def job_plot(id):
+    """Return a plot for a job by job id."""
+    plot = jobs.get_plot(redis_client, id)
+
+    if plot:
+        return send_file(io.BytesIO(plot), mimetype='image/png',
+                         as_attachment=True, attachment_filename=f'{id}.png')
+    else:
+        return _make_error('plot not found for job id.'), 404
 
 
 # Format a simple JSON error message.
