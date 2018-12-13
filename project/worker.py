@@ -31,7 +31,7 @@ def _handle_job_id(job_id):
     job_dict = jobs.get_job(redis_client, job_id)
     data = _get_data(job_dict)
 
-    plot = _create_plot(data)
+    plot = _create_plot(data, job_dict['job_type'])
     jobs.update_plot(redis_client, job_id, plot)
 
     jobs.update_status(redis_client, job_id, 'completed')
@@ -44,7 +44,7 @@ def _get_data(job_dict):
     return requests.get(f'{API_BASE}/spots', params=params).json()
 
 
-def _create_plot(data):
+def _create_plot(data, job_type):
     file = io.BytesIO()
 
     # TODO: do all the plotting stuff here and save to the BytesIO

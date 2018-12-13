@@ -178,6 +178,13 @@ def jobs_index():
         end = body.get('end')
         limit = body.get('limit')
         offset = body.get('offset')
+        job_type = body.get('job_type', 'line')
+
+        if job_type not in ('line', 'fun_facts', 'histogram', 'box_plot'):
+            return _make_error(
+                'job_type must be line, fun_facts, histogram, box_plot, or not'
+                ' given (defaulting to line)'
+            ), 400
 
         is_range_case = start is not None or end is not None
         is_offset_case = limit is not None or offset is not None
@@ -187,18 +194,18 @@ def jobs_index():
                 'limit and/or offset cannot be combined with start and/or end'
             ), 400
         elif is_range_case:
-            return _handle_post_range_job(start, end)
+            return _handle_post_range_job(start, end, job_type)
         elif is_offset_case:
-            return _handle_post_offset_job(limit, offset)
+            return _handle_post_offset_job(limit, offset, job_type)
         else:
-            job_dict = jobs.create_job(redis_client)
+            job_dict = jobs.create_job(redis_client, job_type=job_type)
             return jsonify(job_dict)
     elif request.method == 'GET':
         job_dicts = jobs.get_all_jobs(redis_client)
         return jsonify(job_dicts)
 
 
-def _handle_post_range_job(start, end):
+def _handle_post_range_job(start, end, job_type):
     # Converting the start and end to integers if they were
     # provided.
     try:
@@ -213,11 +220,12 @@ def _handle_post_range_job(start, end):
             'start and end, if provided, must be integers.'
         ), 400
     else:
-        job_dict = jobs.create_job(redis_client, start=start, end=end)
+        job_dict = jobs.create_job(redis_client, start=start, end=end,
+                                   job_type=job_type)
         return jsonify(job_dict)
 
 
-def _handle_post_offset_job(limit, offset):
+def _handle_post_offset_job(limit, offset, job_type):
     # Converting the limit and offset to integers if they were
     # provided and checking if they are non-negative.
     try:
@@ -232,7 +240,8 @@ def _handle_post_offset_job(limit, offset):
             'limit and offset, if provided, must be integers.'
         ), 400
     else:
-        job_dict = jobs.create_job(redis_client, limit=limit, offset=offset)
+        job_dict = jobs.create_job(redis_client, limit=limit, offset=offset,
+                                   job_type=job_type)
         return jsonify(job_dict)
 
 

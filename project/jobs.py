@@ -10,7 +10,8 @@ from datetime import datetime
 import uuid
 
 
-def create_job(redis_client, start=None, end=None, limit=None, offset=None):
+def create_job(redis_client, start=None, end=None, limit=None, offset=None,
+               job_type='line'):
     """Create a job on Redis with optional data query params.
 
     Returns the job dict.
@@ -19,7 +20,7 @@ def create_job(redis_client, start=None, end=None, limit=None, offset=None):
     time_str = _get_iso_time()
 
     job_dict = _job_dict(job_id, 'submitted', start, end, limit, offset,
-                         time_str, time_str, False)
+                         time_str, time_str, False, job_type)
 
     _save_job_redis(redis_client, job_id, job_dict)
     _queue_job_redis(redis_client, job_id)
@@ -102,7 +103,7 @@ def _generate_id():
 
 
 def _job_dict(job_id, status, start, end, limit, offset, created_at,
-              last_updated, has_plot):
+              last_updated, has_plot, job_type):
     """Returns a dictionary representing a job."""
     return {
         'id': job_id,
@@ -113,7 +114,8 @@ def _job_dict(job_id, status, start, end, limit, offset, created_at,
         'offset': offset,
         'created_at': created_at,
         'last_updated': last_updated,
-        'has_plot': has_plot
+        'has_plot': has_plot,
+        'job_type': job_type
     }
 
 
@@ -177,5 +179,6 @@ def _convert_job_hash(job_hash):
         _redis_number(job_hash[b'offset']),
         _redis_string(job_hash[b'created_at']),
         _redis_string(job_hash[b'last_updated']),
-        _redis_boolean(job_hash[b'has_plot'])
+        _redis_boolean(job_hash[b'has_plot']),
+        _redis_string(job_hash[b'job_type'])
     )
