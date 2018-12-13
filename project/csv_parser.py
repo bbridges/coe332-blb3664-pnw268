@@ -34,7 +34,7 @@ def read_data_range(start=None, end=None):
     rows of data linearly.
     """
 
-    data = read_data()
+    data = sorted(read_data(), key=lambda x: x['year'])
 
     # By default we use the whole range, the end index is not
     # inclusive.
@@ -60,7 +60,7 @@ def read_data_range(start=None, end=None):
                 end_index = i
                 break
 
-    return data[start_index:end_index]
+    return sorted(data[start_index:end_index], key=lambda x: x['id'])
 
 
 def read_data_offset(limit=None, offset=None):
@@ -79,3 +79,18 @@ def read_data_offset(limit=None, offset=None):
     else:
         return data[offset:offset + limit]
 
+
+def append_data(year, spots):
+    """Add new data to the CSV file.
+
+    Year must be unique.
+    """
+    existing = read_data()
+
+    if year in (row['year'] for row in existing):
+        raise ValueError('year must be unique')
+
+    with open(CSV_FILE, 'a') as f:
+        f.write(f'{year},{spots}\n')
+
+    return {'id': len(existing), 'year': year, 'spots': spots}

@@ -14,28 +14,65 @@ redis_client = redis.StrictRedis(host=os.environ['REDIS_HOST'],
 app = Flask(__name__)
 
 
-@app.route('/spots', methods=['GET'])
+@app.route('/spots', methods=['POST', 'GET'])
 def spots_index():
-    """Return the sunspots data over a range or offset."""
-    start = request.args.get('start')
-    end = request.args.get('end')
-    limit = request.args.get('limit')
-    offset = request.args.get('offset')
+    """Handle the root spots collection."""
 
-    is_range_case = start is not None or end is not None
-    is_offset_case = limit is not None or offset is not None
+    if request.method == 'POST':
+        # Parse the data and make sure that it has a year and a
+        # non-negative amount of spots.
+        try:
+            body = request.get_json(force=True) or {}
+        except Exception as e:
+            return _make_error(f'Invalid JSON: {e}'), 400
 
-    if is_range_case and is_offset_case:
-        return _make_error(
-            'limit and/or offset cannot be combined with start and/or end'
-        ), 400
-    elif is_range_case:
-        return _handle_range_case(start, end)
-    elif is_offset_case:
-        return _handle_offset_case(limit, offset)
-    else:
-        data = csv_parser.read_data()
-        return jsonify(data)
+        year = body.get('year')
+        spots = body.get('spots')
+
+        if year is None or spots is None:
+            return _make_error('both year and spots must be provided'), 400
+
+        try:
+            # These conversions might fail if they aren't integer
+            # strings.
+            year = int(year)
+            spots = int(spots)
+        except ValueError:
+            return _make_error(
+                'year and spots must be integers.'
+            ), 400
+
+        if spots < 0:
+            return _make_error('spots must be non-negative'), 400
+
+        # Catch an error if the year isn't unique.
+        try:
+            row = csv_parser.append_data(year, spots)
+        except ValueError as e:
+            return _make_error(e.args[0]), 400
+        else:
+            return jsonify(row)
+    elif request.method == 'GET':
+        # Return the sunspots data over a range or offset.
+        start = request.args.get('start')
+        end = request.args.get('end')
+        limit = request.args.get('limit')
+        offset = request.args.get('offset')
+
+        is_range_case = start is not None or end is not None
+        is_offset_case = limit is not None or offset is not None
+
+        if is_range_case and is_offset_case:
+            return _make_error(
+                'limit and/or offset cannot be combined with start and/or end'
+            ), 400
+        elif is_range_case:
+            return _handle_range_case(start, end)
+        elif is_offset_case:
+            return _handle_offset_case(limit, offset)
+        else:
+            data = csv_parser.read_data()
+            return jsonify(data)
 
 
 def _handle_range_case(start, end):
