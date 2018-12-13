@@ -9,7 +9,6 @@ worker).
 from datetime import datetime
 import uuid
 
-
 def create_job(redis_client, start=None, end=None, limit=None, offset=None,
                job_type='line'):
     """Create a job on Redis with optional data query params.
