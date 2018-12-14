@@ -1,0 +1,24 @@
+FROM python:3.6-slim
+
+WORKDIR /app
+
+COPY requirements-worker.txt .
+
+RUN pip install -r requirements-worker.txt
+
+# Copying over project and bin directories.
+COPY project project
+COPY bin bin
+
+ENV PYTHONUNBUFFERED=1
+
+# Can be configured to set desired Redis connection details.
+ENV REDIS_HOST='redis' \
+    REDIS_PORT='6379' \
+    REDIS_DB='0'
+
+# API host and port details.
+ENV API_HOST='api' \
+    API_PORT='5000'
+
+CMD ["./bin/start_worker.py"]

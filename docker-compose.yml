@@ -1,0 +1,34 @@
+version: '3'
+
+services:
+  api:
+    image: blbridges96/project-api
+    environment:
+      - DEBUG
+    ports:
+      - '5000:5000'
+    deploy:
+      placement:
+        constraints:
+          - node.role == manager
+      replicas: 1
+    networks:
+      - project-net
+
+  worker:
+    image: blbridges96/project-worker
+    deploy:
+      replicas: 5
+    networks:
+      - project-net
+
+  redis:
+    image: redis:5.0.0-alpine
+    # Port does not need to be exposed to the host.
+    deploy:
+      replicas: 1
+    networks:
+      - project-net
+
+networks:
+  project-net:

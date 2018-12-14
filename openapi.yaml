@@ -1,0 +1,503 @@
+openapi: 3.0.0
+servers:
+  - url: //api.example.com/
+    description: Example server
+info:
+  description: |
+    Sample API Spec for getting sunspot data and running analysis jobs.
+
+    Uses `data/sunspots.csv` from the class repository.
+
+    If pricing were to be added to the API, a rate limit for requests would be
+    added, where a paid user could acquire a client id that could be attached
+    in the query parameters that would allow for a higher rate limit.
+
+    To make the above work, the current limit and remaining requests would be
+    shown in the headers. This would be per IP address (or another identifying
+    metric like if users were added).
+  version: 0.1.0
+  title: 'COE 332 Project API Spec'
+tags:
+  - name: spots
+    description: |
+      Collection of sunspot data.
+
+      Sunspot data can be processed and analytics can be gathered.
+  - name: jobs
+    description: |
+      Analysis jobs made on sunspot data per request.
+paths:
+  /spots:
+    post:
+      tags:
+        - spots
+      summary: Upload new sunspot data
+      description: |
+        Upload new sunspot data to the database.
+
+        Note that the amount of sunpots must be non-negative, however the year
+        can below or above the current years (but must still be unique).
+      responses:
+        '201':
+          description: Sunspot data uploaded
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/NewSpotsDatum'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+      x-code-samples:
+        - lang: Shell
+          source: |
+            $ curl -X POST http://api.example.com/spots \
+                --data '{"year": 1870, "spots": 88}'
+        - lang: Python
+          source: |
+            import requests
+
+            url = 'http://api.example.com/spots'
+            payload = {
+              'year': 4,
+              'spots': 88
+            }
+
+            r = requests.post(url, json=payload)
+
+            print(r.json())
+      requestBody:
+        $ref: '#/components/requestBodies/NewSpotsDatum'
+    get:
+      tags:
+        - spots
+      summary: Get all sunspot data
+      description: |
+        Return all the sunspot data by a query.
+
+        The time range by default covers all the years, but can be restricted
+        by the year range using *start* and *stop*, or by selecting the number
+        of rows to use and what id to start with using *limit* and *offset*.
+        Note that *start* and *stop* cannot be combined with *limit* and
+        *offset*.
+      parameters:
+        - name: start
+          description: Starting year (inclusive)
+          in: path
+          schema:
+            type: integer
+            format: int64
+        - name: end
+          description: Ending year (inclusive)
+          in: path
+          schema:
+            type: integer
+            format: int64
+        - name: limit
+          description: Maximum number of rows
+          in: path
+          schema:
+            type: integer
+            format: int64
+        - name: offset
+          description: Row starting id offset from 0
+          in: path
+          schema:
+            type: integer
+            format: int64
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SpotsData'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+      x-code-samples:
+        - lang: Shell
+          source: |
+            $ curl http://api.example.com/spots
+        - lang: Python
+          source: |
+            import requests
+
+            url = 'http://api.example.com/spots'
+
+            r = requests.get(url)
+
+            print(r.json())
+  '/spots/{id}':
+    get:
+      tags:
+        - spots
+      summary: Get sunspot data by id
+      description: Return the sunspot data for an id.
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SpotsDatum'
+      x-code-samples:
+        - lang: Shell
+          source: |
+            $ curl http://api.example.com/spots/19
+        - lang: Python
+          source: |
+            import requests
+
+            url = 'http://api.example.com/spots/19'
+
+            r = requests.get(url)
+
+            print(r.json())
+  '/spots/year/{year}':
+    get:
+      tags:
+        - spots
+      summary: Get sunspot data by year
+      description: Return the sunspot data for a yeat.
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SpotsDatum'
+      x-code-samples:
+        - lang: Shell
+          source: |
+            $ curl http://api.example.com/spots/year/1789
+        - lang: Python
+          source: |
+            import requests
+
+            url = 'http://api.example.com/spots/year/1789'
+
+            r = requests.get(url)
+
+            print(r.json())
+  /jobs:
+    post:
+      tags:
+        - jobs
+      summary: Create a new analysis job.
+      description: |
+        This will submit a job to be worked on asynchronously. After creating
+        the job, you can check the status to see once it has been completed.
+        A job produces a plot based on the job type requested.
+
+        The job types are:
+
+        - *line* (default): This shows a basic line graph that shows the amount
+          of sunspots over time.
+        - *fun_facts*: A fun plot that shows some cool sunspot facts over a
+          line graph.
+        - *histogram*: A histogram showing showing the distribution of
+          sunpots.
+        - *box_plot*: A box and whisker plot showing where the sunspot outliers
+          are.
+
+        Jobs can take *start*, *end*, *limit*, and *offset* fields like for
+        fetching sunspot data in the request body, and can take an optional
+        *job_type* field in the request body as well.
+
+        The plot can be fetched with a separate endpoint below and is available
+        once *has_plot* is `true` and the status is *completed*.
+      responses:
+        '201':
+          description: New job created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Job'
+        '400':
+          description: Invalid input
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ApiError'
+      x-code-samples:
+        - lang: Shell
+          source: |
+            $ curl -X POST http://api.example.com/jobs \
+                --data '{"start": 1805, "job_type": "fun_facts"}'
+        - lang: Python
+          source: |
+            import requests
+
+            url = 'http://api.example.com/jobs'
+            payload = {
+              'start': 1805,
+              'job_type': 'fun_facts'
+            }
+
+            r = requests.post(url, json=payload)
+
+            print(r.json())
+      requestBody:
+        $ref: '#/components/requestBodies/NewJob'
+    get:
+      tags:
+        - jobs
+      summary: Get all jobs
+      description: |
+        Return all the jobs made.
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/JobList'
+      x-code-samples:
+        - lang: Shell
+          source: |
+            $ curl http://api.example.com/jobs
+        - lang: Python
+          source: |
+            import requests
+
+            url = 'http://api.example.com/jobs'
+
+            r = requests.get(url)
+
+            print(r.json())
+  '/jobs/{id}':
+    get:
+      tags:
+        - jobs
+      summary: Get a job by id
+      description: |
+        Return the job by the given job id string.
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Job'
+      x-code-samples:
+        - lang: Shell
+          source: |
+            $ curl http://api.example.com/jobs/a2fd6419-4397-4105-a9a3-7f19f07d600e
+        - lang: Python
+          source: |
+            import requests
+
+            url = 'http://api.example.com/jobs/a2fd6419-4397-4105-a9a3-7f19f07d600e'
+
+            r = requests.get(url)
+
+            print(r.json())
+  '/jobs/{id}/plot':
+    get:
+      tags:
+        - jobs
+      summary: Get the plot for a job
+      description: |
+        Return the PNG plot file made for a job made by matplotlib.
+      responses:
+        '200':
+          description: Successful operation
+          content:
+            image/png:
+             schema:
+               type: string
+               format: binary
+      x-code-samples:
+        - lang: Shell
+          source: |
+            $ curl http://api.example.com/jobs/a2fd6419-4397-4105-a9a3-7f19f07d600e/plot > plot.png
+        - lang: Python
+          source: |
+            import shutil
+            import requests
+
+            url = 'http://api.example.com/jobs/a2fd6419-4397-4105-a9a3-7f19f07d600e/plot'
+
+            r = requests.get(url, stream=True)
+
+            # Save the image to a file.
+            with open('plot.png', 'wb') as f:
+                shutil.copyfileobj(r.raw, f)
+components:
+  schemas:
+    NewSpotsDatum:
+      type: object
+      required:
+        - id
+        - year
+        - spots
+      properties:
+        id:
+          type: int64
+          example: 100
+        year:
+          type: int64
+          example: 1870
+        spots:
+          description: Number of sunspots that year
+          type: int64
+          example: 88
+    SpotsDatum:
+      type: object
+      required:
+        - id
+        - year
+        - spots
+      properties:
+        id:
+          type: int64
+          example: 19
+        year:
+          type: int64
+          example: 1789
+        spots:
+          description: Number of sunspots that year
+          type: int64
+          example: 118
+    SpotsData:
+      type: array
+      required:
+        - id
+        - year
+        - spots
+      items:
+        $ref: '#/components/schemas/SpotsDatum'
+    Job:
+      type: object
+      required:
+        - id
+        - status
+        - start
+        - end
+        - limit
+        - offset
+        - created_at
+        - last_updated
+        - has_plot
+        - job_type
+      properties:
+        id:
+          type: string
+          description: UUID v4 id
+          example: a2fd6419-4397-4105-a9a3-7f19f07d600e
+        status:
+          type: string
+          enum:
+            - submitted
+            - processing
+            - completed
+          example: completed
+        start:
+          type: int64
+          description: Starting year in data (inclusive)
+          example: 1800
+        end:
+          type: int64
+          description: Ending year in data (inclusive)
+          example: 1849
+        limit:
+          type: int64
+          description: Maximum number of sunspot data points
+          example: 50
+        offset:
+          type: int64
+          description: Offset from beginning of data entries.
+          example: 5
+        created_at:
+          type: date-time
+          description: Time job was created
+          example: 2018-12-13T03:38:53.520614
+        last_updated:
+          type: date-time
+          description: Time job was updated
+          example: 2018-12-13T03:38:53.520614
+        has_plot:
+          type: boolean
+          description: Whether a plot has been created yet
+          example: true
+        job_type:
+          type: string
+          enum:
+            - line
+            - fun_facts
+            - histogram
+            - box_plot
+          example: histogram
+    JobId:
+      type: string
+      description: UUID v4 id
+      example: a2fd6419-4397-4105-a9a3-7f19f07d600e
+    JobList:
+      type: array
+      items:
+        $ref: '#/components/schemas/Job'
+    ApiError:
+      type: object
+      required:
+        - status
+        - message
+      properties:
+        status:
+          type: string
+          enum:
+            - Error
+        message:
+          type: string
+  requestBodies:
+    NewSpotsDatum:
+      content:
+        application/json:
+          schema:
+            type: object
+            required:
+              - year
+              - spots
+            properties:
+              year:
+                type: int64
+                example: 1870
+              spots:
+                description: Number of sunspots that year
+                type: int64
+                example: 88
+    NewJob:
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              start:
+                type: int64
+                description: Starting year in data (inclusive)
+                example: 1800
+              end:
+                type: int64
+                description: Ending year in data (inclusive)
+                example: 1849
+              limit:
+                type: int64
+                description: Maximum number of sunspot data points
+                example: 50
+              offset:
+                type: int64
+                description: Offset from beginning of data entries.
+                example: 5
+              job_type:
+                type: string
+                enum:
+                  - line
+                  - fun_facts
+                  - histogram
+                  - box_plot
+                example: histogram

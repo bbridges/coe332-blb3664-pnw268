@@ -1,0 +1,24 @@
+FROM python:3.6-slim
+
+WORKDIR /app
+
+COPY requirements-api.txt .
+
+RUN pip install -r requirements-api.txt
+
+# Copying over project and bin directories.
+COPY project project
+COPY bin bin
+
+# Can be set to 1 to put Flask in debug mode.
+ENV DEBUG=0
+ENV PYTHONUNBUFFERED=1
+
+# Can be configured to set desired Redis connection details.
+ENV REDIS_HOST='redis' \
+    REDIS_PORT='6379' \
+    REDIS_DB='0'
+
+EXPOSE 5000
+
+CMD ["./bin/start_api.py"]
