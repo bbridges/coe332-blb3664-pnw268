@@ -5,6 +5,21 @@
 
 [![Build Status](https://travis-ci.com/bbridges/coe332-blb3664-pnw268.svg?branch=master)](https://travis-ci.com/bbridges/coe332-blb3664-pnw268)
 
+## Directory Layout
+
+- `project/` - Python source files for the API and worker
+- `bin/` - Startup scripts for the `Dockerfile`s.
+- `test/` - Contains unit and integration tests from previous homeworks.
+
+## Building
+
+Run `make` to build and tag the API and worker containers.
+
+## Documentation
+
+See https://bbridges.github.io/coe332-blb3664-pnw268 for user documentation and
+[DEPLOYMENT.md](./DEPLOYMENT.md) for deployment documentation.
+
 ## API Spec
 
 The API spec is defined in [openapi.yaml](./openapi.yaml) and generated with
