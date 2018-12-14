@@ -10,23 +10,14 @@ services:
     deploy:
       replicas: 1
     networks:
-      project-net:
-        # This allows "api" to work in swarm mode.
-        aliases:
-          - api
+      - project-net
 
   worker:
     image: blbridges96/project-worker
-    environment:
-      - API_HOST=api
-      - API_PORT=5000
-      - REDIS_HOST=redis
-      - REDIS_PORT=6379
-      - REDIS_DB=0
     deploy:
       replicas: 5
     networks:
-      project-net:
+      - project-net
 
   redis:
     image: redis:5.0.0-alpine
@@ -34,10 +25,7 @@ services:
     deploy:
       replicas: 1
     networks:
-      project-net:
-        # This allows "redis" to work in swarm mode.
-        aliases:
-          - redis
+      - project-net
 
 networks:
   project-net:
