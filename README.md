@@ -18,7 +18,7 @@ Run `make` to build and tag the API and worker containers.
 ## Documentation
 
 See https://bbridges.github.io/coe332-blb3664-pnw268 for user documentation and
-[DEPLOYMENT.md](./DEPLOYMENT.md) for deployment documentation.
+[DEPLOYING.md](./DEPLOYING.md) for deployment documentation.
 
 ## API Spec
 
