@@ -8,6 +8,9 @@ services:
     ports:
       - '5000:5000'
     deploy:
+      placement:
+        constraints:
+          - node.role == manager
       replicas: 1
     networks:
       - project-net
