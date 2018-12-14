@@ -1,0 +1,17 @@
+version: '3'
+
+services:
+  api:
+    image: blbridges96/project-api
+    environment:
+      - DEBUG
+    ports:
+      - '5000:5000'
+
+  worker:
+    image: blbridges96/project-worker
+    deploy:
+      replicas: 5
+
+  redis:
+    image: redis:5.0.0-alpine
